@@ -1,0 +1,17 @@
+name: Nightly Base Image Build
+   on:
+     schedule:
+       - cron: '0 2 * * *'
+     push:
+       paths:
+         - 'package.json'
+         - 'requirements.txt'
+         - 'Dockerfile'
+
+   jobs:
+     build-base-image:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v3
+         - name: Build base image
+           run: docker build -t myapp:latest .
