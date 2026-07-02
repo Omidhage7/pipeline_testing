@@ -1,17 +1,27 @@
 name: Nightly Base Image Build
-   on:
-     schedule:
-       - cron: '0 2 * * *'
-     push:
-       paths:
-         - 'package.json'
-         - 'requirements.txt'
-         - 'Dockerfile'
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  push:
+    paths:
+      - 'Dockerfile'
+      - 'package.json'
+      - 'requirements.txt'
 
-   jobs:
-     build-base-image:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v3
-         - name: Build base image
-           run: docker build -t myapp:latest .
+jobs:
+  build-base-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push base image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
