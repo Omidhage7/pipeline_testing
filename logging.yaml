@@ -1,0 +1,93 @@
+version: '1'
+metadata:
+  description: "Enterprise Logging & Security Auditing Configuration"
+  domain: "logging_domain"
+  level_maturity_target: 3 # Target maturity level 3 to satisfy comprehensive analysis, visualization, and alerting
+
+# 1. Centralized Log Collection & Shipping destinations (Level 1 & 2 Maturity)
+# Level 1: Logs are collected locally and written to disk.
+# Level 2: Logs are automatically forwarded/shipped to a centralized log management platform.
+centralized_log_system:
+  target: "log analytics" # Centralized storage target (e.g., Azure Log Analytics, Datadog, Elasticsearch, Splunk)
+  # Log sources defined to gather data from all active layers of the enterprise stack
+  sources:
+    - name: "frontend-web"
+      type: "application"
+      description: "Aggregates client-side and web server events, routing logs to the centralized log system"
+    - name: "auth-service"
+      type: "security"
+      description: "Collects authentication and authorization audit logs for identity tracking"
+    - name: "database"
+      type: "audit"
+      description: "Captures transactional queries, schema changes, and access control modifications"
+
+# 2. Secure Storage and Integrity Controls (Level 1 & 2 Maturity)
+# Level 1: Basic encryption and secure file system permissions.
+# Level 2: Write-Once-Read-Many (WORM) storage, cryptographic verification, and tamper protection.
+security_and_integrity:
+  encryption:
+    enabled: true
+    algorithm: "AES-256" # Restrictive encryption-at-rest protocol to protect sensitive log files
+  retention:
+    days: 90 # Retention period ensuring compliance and post-incident investigation windows
+  integrity_protection:
+    write_once_read_many: true # Enforce WORM storage policy to prevent log alteration/tampering
+    tamper_evident_logging: true # Log auditing mechanisms (e.g., hash chaining, digital signatures) to detect modification
+    unauthorized_manipulation_protection: "ReadOnly log storage policy enforced. Modifications are prohibited." # Explicit policy enforcement statement
+
+# 3. Log Correlation config (Level 2 Maturity)
+# Level 2 requirement: Trace requests across distributed services by injecting request-specific tracking headers.
+correlation_context:
+  enabled: true
+  # Supported correlation/tracing headers to propagate context through microservices
+  headers:
+    - "correlation_id"
+    - "trace_id"
+    - "x-request-id"
+    - "traceparent" # W3C Trace Context standard compatibility
+  # Log format structure combining timestamp, correlation identifier, severity level, and message content
+  log_format: "[%(asctime)s] [%(correlation_id)s] [%(levelname)s] %(message)s"
+
+# 4. Security Events Definitions (Level 2 Maturity)
+# Level 2 requirement: Distinct capture and categorization of critical security-related actions.
+security_event_handlers:
+  # Handler for user session state transitions
+  authentication:
+    events:
+      - "login"
+      - "logout"
+      - "signin"
+      - "signout"
+  # Handler for identity and authorization modifications
+  user_lifecycle:
+    events:
+      - "user_created"
+      - "user_deleted"
+      - "user_changed"
+      - "user.updated"
+      - "role_changed" # Captures privilege escalation and role modifications
+
+# 5. Log Analysis & Visualization (Level 3 Maturity)
+# Level 3 requirement: Real-time search, automated security alerting, GUI dashboards, and role-based access control.
+analysis_and_visualization:
+  # Platform-specific GUI settings and developer access controls
+  gui_search:
+    enabled: true
+    platform: "Kibana/Grafana GUI Dashboard" # GUI tool for query-based searching, log inspection, and metrics visualization
+    developer_access_policy: "Developers have read-only access to application log namespaces." # Developer privilege separation (RBAC)
+  
+  # Automated security alerting for attack patterns and anomalies
+  attack_detection_rules:
+    enabled: true
+    rules:
+      - name: "Brute Force Detection"
+        trigger: "5 failed login or signin attempts within 60 seconds" # Event threshold monitoring
+      - name: "SQL Injection Alert"
+        trigger: "Detect regex patterns matching SQL syntax in URL/inputs" # Signature-based anomaly detection
+  
+  # Real-time incident notifications integration
+  incident_awareness:
+    alert_delivery:
+      provider: "PagerDuty" # Integration channel for high-priority engineering notifications
+      channels: ["security-alerts-slack-hook"] # ChatOps integration for team notification channels
+      severity_threshold: "error" # Minimum severity required to trigger immediate PagerDuty incident paging
